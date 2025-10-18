@@ -11,8 +11,7 @@ RUN apk update && \
     make \
     libc6-compat \
     && rm -rf /var/cache/apk/*
-RUN yarn install --production --pure-lockfile && \
-    yarn add sharp --ignore-engines && \
+RUN yarn install --pure-lockfile && \
     yarn cache clean
 
 FROM base AS build
@@ -26,9 +25,18 @@ RUN yarn build
 
 FROM base
 WORKDIR /usr/src/wpp-server/
-RUN apk add --no-cache chromium
+RUN apk add --no-cache chromium \
+    vips \
+    vips-dev \
+    fftw-dev \
+    gcc \
+    g++ \
+    make \
+    libc6-compat
 RUN yarn cache clean
 COPY . .
-COPY --from=build /usr/src/wpp-server/ /usr/src/wpp-server/
+# Copy node_modules from build stage (includes Sharp with all dev deps)
+COPY --from=build /usr/src/wpp-server/node_modules/ ./node_modules/
+COPY --from=build /usr/src/wpp-server/dist/ ./dist/
 EXPOSE 21465
 ENTRYPOINT ["node", "dist/server.js"]
